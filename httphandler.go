@@ -118,10 +118,27 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
+}
 
+//关闭brook
+func stopBrook(w http.ResponseWriter, r *http.Request) {
+	stop := executeCommand("/etc/init.d/brook-pf stop")
+	fmt.Printf("关闭:%s", stop)
 }
 
 //重启brook
+func restartBrook(w http.ResponseWriter, r *http.Request) {
+	stop := executeCommand("/etc/init.d/brook-pf stop")
+	start := executeCommand("/etc/init.d/brook-pf start")
+	fmt.Printf("%s\n%s", stop, start)
+}
+
+//启动brook
+func startBrook(w http.ResponseWriter, r *http.Request) {
+	start := executeCommand("/etc/init.d/brook-pf start")
+	fmt.Printf("%s", start)
+}
+
 //添加端口转发
 //删除端口转发
 //修改端口转发
