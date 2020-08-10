@@ -7,8 +7,8 @@ import (
 
 func main() {
 	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/democ", demoCommandHandler)
 	http.HandleFunc("/command", commandHandler)
-	http.ListenAndServe(":8000", nil)
+	http.HandleFunc("/api/getstatus", getStatus)
 	fmt.Println("Brook-pf server starting")
+	http.ListenAndServe(":8000", nil)
 }
