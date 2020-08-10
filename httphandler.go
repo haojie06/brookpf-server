@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -24,95 +25,95 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func executeCommand(cmdstr string) []byte {
 	if cmdstr == "" {
-		fmt.Println("命令为空")
+		log.Println("命令为空")
 		return nil
 	}
-	fmt.Println("将要执行命令" + cmdstr)
+	log.Println("将要执行命令" + cmdstr)
 	cmd := exec.Command("/bin/bash", "-c", cmdstr)
 	//打开命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		//打开输出管道失败
-		fmt.Printf("Error:can not obtain stdout pipe for command:%s\n", err)
+		log.Printf("Error:can not obtain stdout pipe for command:%s\n", err)
 		return nil
 	}
 	//执行命令 !注意，这样写的时候err为局部参数，只在if的作用域中有效
 	if err := cmd.Start(); err != nil {
-		fmt.Println("Error:The command is err,", err)
+		log.Println("Error:The command is err,", err)
 		return nil
 	}
 	//读取命令输出
 	bytes, err := ioutil.ReadAll(stdout)
 	if err != nil {
-		fmt.Println("ReadAll Stdout:", err.Error())
+		log.Println("ReadAll Stdout:", err.Error())
 		return nil
 	}
 	//阻塞等待到命令执行完毕，获取输出
 	if err := cmd.Wait(); err != nil {
-		fmt.Println("wait:", err.Error())
+		log.Println("wait:", err.Error())
 		return nil
 	}
 	//执行到这一步，命令已经执行完毕，也获得了命令的输出
-	fmt.Printf("%s", bytes)
+	log.Printf("%s", bytes)
 	return bytes
 }
 
 func commandHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	//获取命令
-	fmt.Println(r.Form["cmd"][0])
-	fmt.Println("path", r.URL.Path)
-	fmt.Println("scheme", r.URL.Scheme)
+	log.Println(r.Form["cmd"][0])
+	log.Println("path", r.URL.Path)
+	log.Println("scheme", r.URL.Scheme)
 	output := executeCommand(r.Form["cmd"][0])
 	fmt.Fprintf(w, "%s", output)
 }
 
 //获取服务器状态与上面的brook状态 /api/getstatus
 func getStatus(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("查询服务器状态")
+	log.Println("查询服务器状态")
 	//是否在线不用专门做，只要能返回信息就是在线
 	//查询brook是否安装
 	var Response StatusResponse
 	Response.Code = 200
 	if _, err := os.Stat(brook_file); err == nil {
-		fmt.Printf("Brook已经安装\n")
+		log.Printf("Brook已经安装\n")
 		Response.Installed = true
 	} else {
-		fmt.Printf("Brook未安装\n")
+		log.Printf("Brook未安装\n")
 		Response.Installed = false
 	}
 	//查询brook是否启动
 	pid := executeCommand(`ps -ef| grep "brook relays"| grep -v grep| grep -v ".sh"| grep -v "init.d"| grep -v "service"| awk '{print $2}'`)
 	if spid := string(pid); spid == "" {
-		fmt.Println("Brook未启动")
+		log.Println("Brook未启动")
 		Response.Enable = false
 	} else {
-		fmt.Println("Brook已启动 PID:" + spid)
+		log.Println("Brook已启动 PID:" + spid)
 		Response.Enable = true
 	}
 	//返回端口列表
 	//先查看配置文件是否存在
 	if _, err := os.Stat(brook_conf); err == nil {
-		fmt.Println("Brook配置文件存在:")
+		log.Println("Brook配置文件存在:")
 		if dat, err := ioutil.ReadFile(brook_conf); err == nil {
 			//去除一下首尾的字符
 			datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
 			for index, data := range datas {
-				fmt.Printf("%d.:%s\n", index, data)
+				log.Printf("%d.:%s\n", index, data)
 			}
 			Response.Records = datas
 		} else {
-			fmt.Println("打开配置文件失败" + err.Error())
+			log.Println("打开配置文件失败" + err.Error())
 			Response.Code = 201
 		}
 	} else {
-		fmt.Println("Brook配置文件不存在")
+		log.Println("Brook配置文件不存在")
 		Response.Code = 201
 	}
 	js, err := json.Marshal(Response)
-	fmt.Println(string(js))
+	log.Println(string(js))
 	if err != nil {
-		fmt.Println("JSON转换失败" + err.Error())
+		log.Println("JSON转换失败" + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -123,23 +124,92 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 //关闭brook
 func stopBrook(w http.ResponseWriter, r *http.Request) {
 	stop := executeCommand("/etc/init.d/brook-pf stop")
-	fmt.Printf("关闭:%s", stop)
+	log.Printf("关闭:%s", stop)
+
 }
 
 //重启brook
 func restartBrook(w http.ResponseWriter, r *http.Request) {
 	stop := executeCommand("/etc/init.d/brook-pf stop")
 	start := executeCommand("/etc/init.d/brook-pf start")
-	fmt.Printf("%s\n%s", stop, start)
+	log.Printf("%s\n%s", stop, start)
 }
 
 //启动brook
 func startBrook(w http.ResponseWriter, r *http.Request) {
 	start := executeCommand("/etc/init.d/brook-pf start")
-	fmt.Printf("%s", start)
+	log.Printf("%s", start)
 }
 
-//添加端口转发
+/**
+*添加端口转发
+*先检查端口是否已经有了记录
+*使用post方法
+**/
+
+func addPortForward(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(405)
+		log.Println("错误的请求方法")
+		return
+	}
+	/*
+		如果要用form-data而不是json来发送，那么就不要先解析
+		err := r.ParseForm()
+		if err != nil {
+			w.WriteHeader(400)
+			return
+		}
+	*/
+	request := make(map[string]string)
+	request["LocalPort"] = r.PostFormValue("LocalPort")
+	request["RemotePort"] = r.PostFormValue("RemotePort")
+	request["Host"] = r.PostFormValue("Host")
+	request["Enable"] = r.PostFormValue("Enable")
+	log.Println(request)
+	for key, value := range request {
+		fmt.Println("KEY:" + key + "---" + "VALUE:" + value)
+	}
+	//首先检查端口是否重复
+	var ifDuplicated bool = false
+	if _, err := os.Stat(brook_conf); err == nil {
+		log.Println("[检查端口]Brook配置文件存在:")
+		if dat, err := ioutil.ReadFile(brook_conf); err == nil {
+			//去除一下首尾的字符
+			datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+			for index, data := range datas {
+				log.Printf("%d.:%s\n", index, data)
+				lp := strings.Split(data, " ")[0]
+				if request["LocalPort"] == lp {
+					log.Println("该端口已经添加过转发:" + lp)
+					ifDuplicated = true
+				}
+			}
+			if !ifDuplicated {
+				log.Println("可以添加转发端口" + request["LocalPort"])
+			} else {
+				w.WriteHeader(401)
+				//端口冲突 无法添加
+			}
+		} else {
+			log.Println("[检查端口]打开配置文件失败" + err.Error())
+			w.WriteHeader(http.StatusExpectationFailed)
+			fmt.Fprintf(w, err.Error())
+		}
+	} else {
+		log.Println("[检查端口]rook配置文件不存在")
+		w.WriteHeader(http.StatusExpectationFailed)
+		fmt.Fprintf(w, err.Error())
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return
+	//log.Println(r.Form["cmd"][0])
+	//log.Println("path", r.URL.Path)
+	//log.Println("scheme", r.URL.Scheme)
+}
+
 //删除端口转发
 //修改端口转发
 //编辑端口转发
