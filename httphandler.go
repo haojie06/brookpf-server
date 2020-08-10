@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -71,17 +72,23 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("查询服务器状态")
 	//是否在线不用专门做，只要能返回信息就是在线
 	//查询brook是否安装
+	var Response StatusResponse
+	Response.Code = 200
 	if _, err := os.Stat(brook_file); err == nil {
 		fmt.Printf("Brook已经安装\n")
+		Response.Installed = true
 	} else {
 		fmt.Printf("Brook未安装\n")
+		Response.Installed = false
 	}
 	//查询brook是否启动
 	pid := executeCommand(`ps -ef| grep "brook relays"| grep -v grep| grep -v ".sh"| grep -v "init.d"| grep -v "service"| awk '{print $2}'`)
 	if spid := string(pid); spid == "" {
 		fmt.Println("Brook未启动")
+		Response.Enable = false
 	} else {
 		fmt.Println("Brook已启动 PID:" + spid)
+		Response.Enable = true
 	}
 	//返回端口列表
 	//先查看配置文件是否存在
@@ -93,12 +100,25 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 			for index, data := range datas {
 				fmt.Printf("%d.:%s\n", index, data)
 			}
+			Response.Records = datas
 		} else {
 			fmt.Println("打开配置文件失败" + err.Error())
+			Response.Code = 201
 		}
 	} else {
 		fmt.Println("Brook配置文件不存在")
+		Response.Code = 201
 	}
+	js, err := json.Marshal(Response)
+	fmt.Println(string(js))
+	if err != nil {
+		fmt.Println("JSON转换失败" + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+
 }
 
 //重启brook
