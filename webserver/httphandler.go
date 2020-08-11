@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/spf13/viper"
 )
@@ -79,6 +80,36 @@ func delServer(w http.ResponseWriter, r *http.Request) {
 	if !auth(w, r) {
 		return
 	}
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Println(err.Error())
+	}
+	delID := r.PostFormValue("DelID")
+	log.Printf("[删除服务器] ID=%s", delID)
+	servers := config.Servers
+	newServers := make([]Server, 0)
+	count := 1
+	for _, s := range servers {
+		if delID == strconv.Itoa(s.ID) {
+			log.Printf("找到删除对象: %s", s)
+		} else {
+			s.ID = count
+			count++
+			newServers = append(newServers, s)
+		}
+	}
+	vip.Set("servers", newServers)
+	var mr MessageResponse
+	if err := vip.WriteConfig(); err != nil {
+		log.Println("[删除配置服务器]错误:", err.Error())
+		mr = MessageResponse{Code: 400, Msg: err.Error()}
+	} else {
+		mr = MessageResponse{Code: 200, Msg: "成功删除"}
+	}
+	js, _ := json.Marshal(mr)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+	return
 }
 
 //修改服务器
