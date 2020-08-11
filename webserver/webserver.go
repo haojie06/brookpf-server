@@ -62,16 +62,25 @@ func main() {
 		//注意 必须是write as 才会创建新文件（如果文件不存在的话）
 		viper.WriteConfigAs(config_path + config_name + "." + config_type)
 	}
-	port := viper.GetString("port")
-	username = viper.GetString("username")
-	password = viper.GetString("password")
+	//此处为面板配置
+	//下面读取默认服务器列表
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
 		log.Println(err.Error())
 	}
+	port := config.Port
+	username = config.UserName
+	password = config.Password
+	serverList := config.Servers
 	//serverlist := viper.GetStringMap("servers")
 	log.Printf("Brook webserver started\nusername:%s\npassword:%s\nport:%s\n", username, password, port)
-	log.Println(config)
+	log.Println(serverList)
+	//绑定监听方法
+	//登录验证
+	//获取服务器列表
+	//添加服务器
+	//删除服务器
+	//修改服务器
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
