@@ -84,7 +84,7 @@ func delServer(w http.ResponseWriter, r *http.Request) {
 	if err := viper.Unmarshal(&config); err != nil {
 		log.Println(err.Error())
 	}
-	delID := r.PostFormValue("DelID")
+	delID := r.PostFormValue("ID")
 	log.Printf("[删除服务器] ID=%s", delID)
 	servers := config.Servers
 	newServers := make([]Server, 0)
@@ -113,6 +113,40 @@ func delServer(w http.ResponseWriter, r *http.Request) {
 }
 
 //修改服务器
+func editServer(w http.ResponseWriter, r *http.Request) {
+	if !auth(w, r) {
+		return
+	}
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Println(err.Error())
+	}
+	editID := r.PostFormValue("ID")
+	servers := config.Servers
+	for i, s := range servers {
+		if editID == strconv.Itoa(s.ID) {
+			log.Printf("[修改服务器配置] 找到对应的服务器:%s\n", s)
+			servers[i].Desc = r.PostFormValue("Desc")
+			servers[i].IP = r.PostFormValue("IP")
+			servers[i].Name = r.PostFormValue("Name")
+			servers[i].Password = r.PostFormValue("ServerPassword")
+			servers[i].Port = r.PostFormValue("Port")
+			servers[i].UserName = r.PostFormValue("ServerUsername")
+		}
+	}
+	vip.Set("servers", servers)
+	var mr MessageResponse
+	if err := vip.WriteConfig(); err != nil {
+		log.Println("[修改服务器配置]错误:", err.Error())
+		mr = MessageResponse{Code: 400, Msg: err.Error()}
+	} else {
+		mr = MessageResponse{Code: 200, Msg: "成功修改"}
+	}
+	js, _ := json.Marshal(mr)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+	return
+}
 
 //登录验证以及授权
 func auth(w http.ResponseWriter, r *http.Request) bool {

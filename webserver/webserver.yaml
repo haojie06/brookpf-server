@@ -11,12 +11,12 @@ servers:
   password: admin
   desc: temps desc
 - id: 2
-  name: sq
-  ip: sq.aoyou.me
-  port: "8000"
+  name: gl
+  ip: gl.aoyou.me
+  port: "888"
   username: admin
   password: admin
-  desc: miaoshu
+  desc: 修改后
 - id: 3
   name: zzs
   ip: zz.aoyou.me

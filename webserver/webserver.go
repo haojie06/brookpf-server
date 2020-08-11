@@ -68,6 +68,7 @@ func main() {
 	http.HandleFunc("/api/getservers", getServers)
 	http.HandleFunc("/api/addserver", addServer)
 	http.HandleFunc("/api/delserver", delServer)
+	http.HandleFunc("/api/editserver", editServer)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
