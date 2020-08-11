@@ -13,6 +13,11 @@ type MessageResponse struct {
 	Msg  string
 }
 
+type DataResponse struct {
+	Code int
+	Data map[string]interface{}
+}
+
 type AddPortForwardRequest struct {
 	LocalPort  uint
 	RemotePort uint

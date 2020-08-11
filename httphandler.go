@@ -310,6 +310,28 @@ func deletePortForward(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+//查找端口转发列表
+func listPortForward(w http.ResponseWriter, r *http.Request) {
+	var dr DataResponse
+	if dat, err := ioutil.ReadFile(brook_conf); err == nil {
+		//去除一下首尾的字符
+		datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+		dr.Code = 200
+		dataMap := make(map[string]interface{})
+		dataMap["records"] = datas
+		dr.Data = dataMap
+	} else {
+		log.Println("[查询端口转发 ]打开配置文件失败" + err.Error())
+		dr.Code = 400
+		dr.Data = nil
+	}
+	js, err := json.Marshal(dr)
+	if err != nil {
+		log.Println("[查询端口转发]	JSON转换失败")
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
 //修改端口转发
 //编辑端口转发
-//func addPf(w http.ResponseWriter, r *http.Request)
