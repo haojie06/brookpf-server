@@ -76,11 +76,7 @@ func main() {
 	log.Printf("Brook webserver started\nusername:%s\npassword:%s\nport:%s\n", username, password, port)
 	log.Println(serverList)
 	//绑定监听方法
-	//登录验证
-	//获取服务器列表
-	//添加服务器
-	//删除服务器
-	//修改服务器
+	http.HandleFunc("/api/login", login)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
