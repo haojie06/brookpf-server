@@ -1,6 +1,7 @@
 package main
 
 type Server struct {
+	ID       int    `id`
 	Name     string `name`
 	IP       string `ip`
 	Port     string `port`

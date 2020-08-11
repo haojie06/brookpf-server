@@ -58,6 +58,7 @@ func addServer(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 	}
 	servers := config.Servers
+	newServer.ID = len(servers) + 1
 	servers = append(servers, newServer)
 	vip.Set("servers", servers)
 	var mr MessageResponse
@@ -74,6 +75,12 @@ func addServer(w http.ResponseWriter, r *http.Request) {
 }
 
 //删除服务器
+func delServer(w http.ResponseWriter, r *http.Request) {
+	if !auth(w, r) {
+		return
+	}
+}
+
 //修改服务器
 
 //登录验证以及授权

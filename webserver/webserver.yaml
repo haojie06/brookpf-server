@@ -3,13 +3,15 @@ desc: 描述
 password: admin
 port: 8002
 servers:
-- name: tempserver
+- id: 1
+  name: tempserver
   ip: 127.0.0.1
   port: "8000"
   username: admin
   password: admin
   desc: temps desc
-- name: sq
+- id: 2
+  name: sq
   ip: sq.aoyou.me
   port: "8000"
   username: admin

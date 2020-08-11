@@ -35,6 +35,7 @@ func main() {
 	defaultServers := make([]Server, 0)
 	//默认服务器配置
 	defaultServer := Server{}
+	defaultServer.ID = 1
 	defaultServer.Name = "tempserver"
 	defaultServer.Desc = "temps desc"
 	defaultServer.IP = "127.0.0.1"
