@@ -54,7 +54,7 @@ func executeCommand(cmdstr string) []byte {
 		return nil
 	}
 	//执行到这一步，命令已经执行完毕，也获得了命令的输出
-	log.Printf("%s", bytes)
+	log.Printf("[命令执行]	结果: %s", bytes)
 	return bytes
 }
 
@@ -169,6 +169,8 @@ func addPortForward(w http.ResponseWriter, r *http.Request) {
 		request["RemotePort"] = r.PostFormValue("RemotePort")
 		request["Host"] = r.PostFormValue("Host")
 		request["Enable"] = r.PostFormValue("Enable")
+		request["Name"] = r.PostFormValue("Name")
+		request["Description"] = r.PostFormValue("Description")
 		//处理一下非法输入
 		log.Println("[添加端口转发]	请求记录", request)
 		for key, value := range request {
@@ -214,7 +216,7 @@ func addPortForward(w http.ResponseWriter, r *http.Request) {
 							log.Println("[添加端口转发]打开配置文件出错", err.Error())
 
 						}
-						if _, err := f.Write([]byte(request["LocalPort"] + " " + request["Host"] + " " + request["RemotePort"] + " " + request["Enable"] + "\n")); err != nil {
+						if _, err := f.Write([]byte(request["LocalPort"] + " " + request["Host"] + " " + request["RemotePort"] + " " + request["Enable"] + " " + request["Name"] + " " + request["Description"] + "\n")); err != nil {
 							log.Fatal(err)
 						}
 						if err := f.Close(); err != nil {
@@ -289,8 +291,12 @@ func deletePortForward(w http.ResponseWriter, r *http.Request) {
 				//查看是否成功删除 暂时不做这个
 				//下面这个方法有可能出现bug，因为如果域名，ip中带有和端口一样的数字，则无法判断是否成功删除
 				//ret = executeCommand(`cat ` + brook_conf + `| grep ` + lport)
+				//重启一下 brook
+				executeCommand("/etc/init.d/brook-pf stop")
+				executeCommand("/etc/init.d/brook-pf start")
 				mr.Code = 200
 				mr.Msg = "已删除端口转发记录"
+
 				break
 			}
 		}
@@ -333,5 +339,60 @@ func listPortForward(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-//修改端口转发
+//修改端口转发 也是使用post方法
+func editPortForward(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req AddPortForwardRequest
+	req.LocalPort = r.PostFormValue("LocalPort")
+	req.RemotePort = r.PostFormValue("RemotePort")
+	req.NewPort = r.PostFormValue("NewPort")
+	req.Host = r.PostFormValue("Host")
+	req.Name = r.PostFormValue("Name")
+	req.Description = r.PostFormValue("Description")
+	//检查本地端口，有的话删除那一行再加一行新的。
+	var dr MessageResponse
+	if dat, err := ioutil.ReadFile(brook_conf); err == nil {
+		//去除一下首尾的字符
+		datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+
+		found := false
+		for index, data := range datas {
+			lport := strings.Split(data, " ")[0]
+			if req.LocalPort == lport {
+				log.Printf("[编辑端口转发]找到对应端口记录: %d.:%s %s==%s", index, data, req.LocalPort, lport)
+				found = true
+				//进行删除
+				ret := executeCommand(`sed -i "/^` + lport + `/d" ` + brook_conf)
+				log.Println("[编辑端口转发]	删除记录" + string(ret))
+				//删除后添加新记录
+				addLine := req.NewPort + " " + req.Host + " " + req.RemotePort + " " + req.Enable + " " + req.Name + " " + req.Description
+				ret = executeCommand(`echo "` + addLine + `" >> ` + brook_conf)
+				log.Println("[编辑端口转发]添加记录" + string(ret))
+				//最后重启一下
+				log.Println("[编辑端口转发]重启使编辑生效")
+				executeCommand("/etc/init.d/brook-pf stop")
+				executeCommand("/etc/init.d/brook-pf start")
+				dr.Code = 200
+				dr.Msg = "成功编辑"
+				break
+			}
+		}
+		if !found {
+			log.Println("[编辑端口转发]	配置文件中未找到对应端口")
+			dr.Code = 400
+			dr.Msg = "配置文件中未找到对应端口"
+		}
+	} else {
+		log.Println("[删除端口转发 ]打开配置文件失败" + err.Error())
+		dr.Code = 400
+		dr.Msg = "打开配置文件失败"
+	}
+	w.Header().Set("Content-Type", "application/json")
+	js, _ := json.Marshal(dr)
+	w.Write(js)
+}
+
 //编辑端口转发

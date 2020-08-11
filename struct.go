@@ -15,12 +15,16 @@ type MessageResponse struct {
 
 type DataResponse struct {
 	Code int
+	Msg  string
 	Data map[string]interface{}
 }
 
 type AddPortForwardRequest struct {
-	LocalPort  uint
-	RemotePort uint
-	Host       string
-	Enable     int
+	LocalPort   string
+	RemotePort  string
+	NewPort     string
+	Host        string
+	Enable      string
+	Name        string
+	Description string
 }
