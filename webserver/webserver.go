@@ -15,23 +15,10 @@ var (
 	release     = ""
 	username    = ""
 	password    = ""
+	vip         = viper.GetViper()
 )
 
 //这个为面板的后端，功能较为简单，从配置文件中读取面板用户和密码以及负责读写该用户已经添加的服务器 端口 密码 备注
-type Server struct {
-	Name     string `name`
-	IP       string `ip`
-	Port     string `port`
-	UserName string `username`
-	Password string `password`
-	Desc     string `desc`
-}
-type Config struct {
-	UserName string   `username`
-	Password string   `password`
-	Port     string   `port`
-	Servers  []Server `servers`
-}
 
 func main() {
 	viper.SetConfigType(config_type)
@@ -77,6 +64,7 @@ func main() {
 	log.Println(serverList)
 	//绑定监听方法
 	http.HandleFunc("/api/login", login)
+	http.HandleFunc("/api/getservers", getServers)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
