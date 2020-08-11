@@ -11,14 +11,14 @@ import (
 //登录验证
 func login(w http.ResponseWriter, r *http.Request) {
 	if !auth(w, r) {
-		log.Println("[登录验证]登录失败")
+		log.Println("[登录验证]登录失败 用户ip:", r.RemoteAddr)
 		return
 	}
 	mr := MessageResponse{Code: 200, Msg: "登陆成功"}
 	js, _ := json.Marshal(mr)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
-	log.Println("[登录验证]登录成功")
+	log.Println("[登录验证]登录成功 用户ip:", r.RemoteAddr)
 	return
 }
 
@@ -37,10 +37,42 @@ func getServers(w http.ResponseWriter, r *http.Request) {
 	js, _ := json.Marshal(mr)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
+	log.Println("[服务器列表查询] 查询服务器列表")
 	return
 }
 
 //添加服务器
+func addServer(w http.ResponseWriter, r *http.Request) {
+	if !auth(w, r) {
+		return
+	}
+	var newServer Server
+	newServer.Name = r.PostFormValue("Name")
+	newServer.IP = r.PostFormValue("IP")
+	newServer.UserName = r.PostFormValue("Username")
+	newServer.Password = r.PostFormValue("Password")
+	newServer.Port = r.PostFormValue("Port")
+	newServer.Desc = r.PostFormValue("Desc")
+	var config Config
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Println(err.Error())
+	}
+	servers := config.Servers
+	servers = append(servers, newServer)
+	vip.Set("servers", servers)
+	var mr MessageResponse
+	if err := vip.WriteConfig(); err != nil {
+		log.Println("[添加配置服务器]错误:", err.Error())
+		mr = MessageResponse{Code: 400, Msg: err.Error()}
+	} else {
+		mr = MessageResponse{Code: 200, Msg: "成功添加"}
+	}
+	js, _ := json.Marshal(mr)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+	return
+}
+
 //删除服务器
 //修改服务器
 

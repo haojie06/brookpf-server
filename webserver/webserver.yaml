@@ -1,14 +1,18 @@
 broadcast: 公告
 desc: 描述
-username: admin
 password: admin
 port: 8002
 servers:
-- desc: temps desc
+- name: tempserver
   ip: 127.0.0.1
-  name: tempserver
-  password: admin
   port: "8000"
   username: admin
-
-
+  password: admin
+  desc: temps desc
+- name: sq
+  ip: sq.aoyou.me
+  port: "8000"
+  username: admin
+  password: admin
+  desc: miaoshu
+username: admin

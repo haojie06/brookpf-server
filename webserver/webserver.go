@@ -58,13 +58,14 @@ func main() {
 	port := config.Port
 	username = config.UserName
 	password = config.Password
-	serverList := config.Servers
+	//serverList := config.Servers
 	//serverlist := viper.GetStringMap("servers")
 	log.Printf("Brook webserver started\nusername:%s\npassword:%s\nport:%s\n", username, password, port)
-	log.Println(serverList)
+	//log.Println(serverList)
 	//绑定监听方法
 	http.HandleFunc("/api/login", login)
 	http.HandleFunc("/api/getservers", getServers)
+	http.HandleFunc("/api/addserver", addServer)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
