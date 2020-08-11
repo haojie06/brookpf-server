@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
@@ -12,6 +13,7 @@ var (
 	config_path = "./"
 	config_name = "brookpf"
 	config_type = "yaml"
+	release     = ""
 )
 
 func main() {
@@ -40,11 +42,17 @@ func main() {
 	password := viper.Get("password")
 
 	fmt.Println("配置文件定义 端口:", port, " 用户名:", username, "密码:", password)
+	//检查发行版
+	fmt.Println("检查发行版")
+	ret := executeCommand(CheckReleaseScript)
+	release = strings.TrimSpace((string(ret)))
+	fmt.Println("发行版为:" + release)
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/command", commandHandler)
 	http.HandleFunc("/api/getstatus", getStatus)
 	http.HandleFunc("/api/stopbrook", stopBrook)
 	http.HandleFunc("/api/addpf", addPortForward)
+	http.HandleFunc("/api/delpf",deletePortForward)
 	fmt.Println("Brook-pf server starting")
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())

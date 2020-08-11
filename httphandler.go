@@ -28,7 +28,7 @@ func executeCommand(cmdstr string) []byte {
 		log.Println("命令为空")
 		return nil
 	}
-	log.Println("将要执行命令" + cmdstr)
+	log.Println("[命令执行]将要执行:" + cmdstr)
 	cmd := exec.Command("/bin/bash", "-c", cmdstr)
 	//打开命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
@@ -148,69 +148,168 @@ func startBrook(w http.ResponseWriter, r *http.Request) {
 **/
 
 func addPortForward(w http.ResponseWriter, r *http.Request) {
+	var messageResponse MessageResponse
 	if r.Method != http.MethodPost {
-		w.WriteHeader(405)
-		log.Println("错误的请求方法")
-		return
-	}
-	/*
-		如果要用form-data而不是json来发送，那么就不要先解析
-		err := r.ParseForm()
+		messageResponse.Code = 405
+		messageResponse.Msg = "错误的请求方法"
+		//w.WriteHeader(405)
+		log.Println("[添加端口转发]	错误的请求方法")
+		//return
+	} else {
+		/*
+			如果要用form-data而不是json来发送，那么就不要先解析
+			err := r.ParseForm()
+			if err != nil {
+				w.WriteHeader(400)
+				return
+			}
+		*/
+		request := make(map[string]string)
+		request["LocalPort"] = r.PostFormValue("LocalPort")
+		request["RemotePort"] = r.PostFormValue("RemotePort")
+		request["Host"] = r.PostFormValue("Host")
+		request["Enable"] = r.PostFormValue("Enable")
+		//处理一下非法输入
+		log.Println("[添加端口转发]	请求记录", request)
+		for key, value := range request {
+			fmt.Println("KEY:" + key + "---" + "VALUE:" + value)
+		}
+		//首先检查端口是否重复
+
+		completed := true
+		for index, data := range request {
+			if data == "" {
+				//request post参数不完整
+				completed = false
+				messageResponse.Code = 400
+				messageResponse.Msg = "request参数不完整 缺少" + index
+				log.Printf("[添加中转端口]	request参数不完整，缺少%s\n", index)
+			}
+		}
+		if completed {
+			var ifDuplicated bool = false
+			if _, err := os.Stat(brook_conf); err == nil {
+				log.Println("[添加端口转发]Brook配置文件存在:")
+				if dat, err := ioutil.ReadFile(brook_conf); err == nil {
+					//去除一下首尾的字符
+					datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+					for index, data := range datas {
+						log.Printf("%d.:%s\n", index, data)
+						lp := strings.Split(data, " ")[0]
+						if request["LocalPort"] == lp {
+							log.Println("[添加端口转发]端口冲突，无法添加转发:" + lp)
+							ifDuplicated = true
+						}
+					}
+					if ifDuplicated {
+						//端口冲突 无法添加
+						messageResponse.Code = 400
+						messageResponse.Msg = "端口冲突无法添加转发"
+
+					} else {
+						log.Println("可以添加转发端口" + request["LocalPort"])
+						//写入文件
+						f, err := os.OpenFile(brook_conf, os.O_APPEND|os.O_WRONLY, 0600)
+						if err != nil {
+							log.Println("[添加端口转发]打开配置文件出错", err.Error())
+
+						}
+						if _, err := f.Write([]byte(request["LocalPort"] + " " + request["Host"] + " " + request["RemotePort"] + " " + request["Enable"] + "\n")); err != nil {
+							log.Fatal(err)
+						}
+						if err := f.Close(); err != nil {
+							log.Fatal(err)
+						} else {
+							log.Println("[添加端口转发]写入配置文件")
+						}
+						//判断是否成功添加（看上去不判断也没问题，上一步只要没执行出错就不会有问题。）
+						//修改iptables
+						log.Println("[添加端口转发]修改iptables")
+						log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport "+request["LocalPort"]+" -j ACCEPT")))
+						log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport "+request["LocalPort"]+" -j ACCEPT")))
+						if release == "centos" {
+							log.Printf("%s\n", string(executeCommand("service iptables save")))
+						} else if release == "ubuntu" {
+							log.Printf("%s\n", string(executeCommand("iptables-save > /etc/iptables.up.rules")))
+						} else {
+							log.Println("脚本不支持当前发行版", release)
+						}
+						//重启brook
+						executeCommand("/etc/init.d/brook-pf stop")
+						executeCommand("/etc/init.d/brook-pf start")
+						log.Println("成功添加端口转发")
+						messageResponse.Code = 200
+						messageResponse.Msg = "成功添加端口转发"
+					}
+				} else {
+					log.Println("[添加端口转发]打开配置文件失败" + err.Error())
+					messageResponse.Code = 400
+					messageResponse.Msg = "打开brook配置文件失败"
+				}
+			} else {
+				log.Println("[添加端口转发]rook配置文件不存在")
+				messageResponse.Code = 400
+				messageResponse.Msg = "[添加端口转发]brook配置文件不存在"
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(messageResponse)
 		if err != nil {
-			w.WriteHeader(400)
+			log.Println("JSON转换失败" + err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-	*/
-	request := make(map[string]string)
-	request["LocalPort"] = r.PostFormValue("LocalPort")
-	request["RemotePort"] = r.PostFormValue("RemotePort")
-	request["Host"] = r.PostFormValue("Host")
-	request["Enable"] = r.PostFormValue("Enable")
-	log.Println(request)
-	for key, value := range request {
-		fmt.Println("KEY:" + key + "---" + "VALUE:" + value)
-	}
-	//首先检查端口是否重复
-	var ifDuplicated bool = false
-	if _, err := os.Stat(brook_conf); err == nil {
-		log.Println("[检查端口]Brook配置文件存在:")
-		if dat, err := ioutil.ReadFile(brook_conf); err == nil {
-			//去除一下首尾的字符
-			datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
-			for index, data := range datas {
-				log.Printf("%d.:%s\n", index, data)
-				lp := strings.Split(data, " ")[0]
-				if request["LocalPort"] == lp {
-					log.Println("该端口已经添加过转发:" + lp)
-					ifDuplicated = true
-				}
-			}
-			if !ifDuplicated {
-				log.Println("可以添加转发端口" + request["LocalPort"])
-			} else {
-				w.WriteHeader(401)
-				//端口冲突 无法添加
-			}
-		} else {
-			log.Println("[检查端口]打开配置文件失败" + err.Error())
-			w.WriteHeader(http.StatusExpectationFailed)
-			fmt.Fprintf(w, err.Error())
-		}
-	} else {
-		log.Println("[检查端口]rook配置文件不存在")
-		w.WriteHeader(http.StatusExpectationFailed)
-		fmt.Fprintf(w, err.Error())
+		w.Write(js)
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	return
-	//log.Println(r.Form["cmd"][0])
-	//log.Println("path", r.URL.Path)
-	//log.Println("scheme", r.URL.Scheme)
 }
 
 //删除端口转发
+//检查本地是否有该端口
+//直接调用shell删除就好了
+func deletePortForward(w http.ResponseWriter, r *http.Request) {
+	var mr MessageResponse
+	r.ParseForm()
+	port := r.Form["port"]
+	log.Println("[删除端口转发] 开始删除, 本地端口:", port)
+	if dat, err := ioutil.ReadFile(brook_conf); err == nil {
+		//去除一下首尾的字符
+		datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+		found := false
+		for index, data := range datas {
+			lport := strings.Split(data, " ")[0]
+			if port[0] == lport {
+				log.Printf("[删除端口转发]	找到对应端口记录: %d.:%s", index, data)
+				found = true
+				//进行删除
+				ret := executeCommand(`sed -i "/^` + lport + `/d" ` + brook_conf)
+				log.Println("[删除端口转发]	" + string(ret))
+				//查看是否成功删除 暂时不做这个
+				//下面这个方法有可能出现bug，因为如果域名，ip中带有和端口一样的数字，则无法判断是否成功删除
+				//ret = executeCommand(`cat ` + brook_conf + `| grep ` + lport)
+				mr.Code = 200
+				mr.Msg = "已删除端口转发记录"
+				break
+			}
+		}
+		if !found {
+			log.Println("[删除端口转发]	配置文件中未找到对应端口")
+			mr.Code = 400
+			mr.Msg = "配置文件中未找到对应端口"
+		}
+	} else {
+		log.Println("[删除端口转发 ]打开配置文件失败" + err.Error())
+		mr.Code = 400
+		mr.Msg = "打开配置文件失败"
+	}
+	js, _ := json.Marshal(mr)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+	return
+}
+
 //修改端口转发
 //编辑端口转发
 //func addPf(w http.ResponseWriter, r *http.Request)

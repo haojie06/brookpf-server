@@ -45,6 +45,7 @@ check_sys(){
 	elif cat /proc/version | grep -q -E -i "centos|red hat|redhat"; then
 		release="centos"
     fi
+	echo release
 	bit=`uname -m`
 }
 check_installed_status(){
