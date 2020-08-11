@@ -1,0 +1,18 @@
+broadcast: 公告
+desc: 描述
+password: admin
+port: 8001
+servers:
+- desc: temps desc
+  ip: 127.0.0.1
+  name: tempserver
+  password: admin
+  port: "8000"
+  username: admin
+- desc: temps desc
+  ip: 127.0.0.1
+  name: tempserver
+  password: admin
+  port: "8000"
+  username: admin
+username: admin
