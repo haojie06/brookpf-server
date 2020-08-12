@@ -19,10 +19,6 @@ var (
 	Crontab_file      = "/usr/bin/crontab"
 )
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	//fmt.Fprintf(w, "hello world")
-}
-
 func executeCommand(cmdstr string) []byte {
 	if cmdstr == "" {
 		log.Println("命令为空")
@@ -74,6 +70,7 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 	if !auth(w, r) {
 		return
 	}
+
 	log.Println("查询服务器状态")
 	//是否在线不用专门做，只要能返回信息就是在线
 	//查询brook是否安装
@@ -123,6 +120,7 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
+	return
 }
 
 //关闭brook
@@ -430,6 +428,7 @@ func editPortForward(w http.ResponseWriter, r *http.Request) {
 
 //授权
 func auth(w http.ResponseWriter, r *http.Request) bool {
+	indexHandler(w, r)
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return false
@@ -448,4 +447,20 @@ func auth(w http.ResponseWriter, r *http.Request) bool {
 		//授权成功
 		return true
 	}
+}
+
+//跨域请求
+func setupResponse(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
+func indexHandler(w http.ResponseWriter, req *http.Request) {
+	setupResponse(&w, req)
+	if (*req).Method == "OPTIONS" {
+		return
+	}
+
+	// process the request...
 }
