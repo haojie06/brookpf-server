@@ -1,21 +1,21 @@
 broadcast: 公告
 desc: 描述
 password: admin
-port: 8002
+port: 8001
 servers:
 - id: 1
-  name: tempserver
-  ip: 127.0.0.1
+  name: 樱花vps
+  ip: sakura.better06.xyz
   port: "8000"
   username: admin
-  password: admin
-  desc: temps desc
+  password: sakura
+  desc: 樱花vps
 - id: 2
-  name: gl
-  ip: gl.aoyou.me
-  port: "888"
+  name: jmos
+  ip: jmos.better06.xyz
+  port: "8008"
   username: admin
-  password: admin
+  password: jmos
   desc: 修改后
 - id: 3
   name: zzs

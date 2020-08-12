@@ -64,11 +64,11 @@ func main() {
 	log.Printf("Brook webserver started\nusername:%s\npassword:%s\nport:%s\n", username, password, port)
 	//log.Println(serverList)
 	//绑定监听方法
-	http.HandleFunc("/api/login", login)
-	http.HandleFunc("/api/getservers", getServers)
-	http.HandleFunc("/api/addserver", addServer)
-	http.HandleFunc("/api/delserver", delServer)
-	http.HandleFunc("/api/editserver", editServer)
+	http.HandleFunc("/web/login", login)
+	http.HandleFunc("/web/getservers", getServers)
+	http.HandleFunc("/web/addserver", addServer)
+	http.HandleFunc("/web/delserver", delServer)
+	http.HandleFunc("/web/editserver", editServer)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
