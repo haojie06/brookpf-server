@@ -298,8 +298,8 @@ func deletePortForward(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var mr MessageResponse
-	r.ParseForm()
-	port := r.Form["port"]
+	//r.ParseForm()
+	port := r.PostFormValue("LocalPort")
 	log.Println("[删除端口转发] 开始删除, 本地端口:", port)
 	if dat, err := ioutil.ReadFile(brook_conf); err == nil {
 		//去除一下首尾的字符
@@ -307,7 +307,7 @@ func deletePortForward(w http.ResponseWriter, r *http.Request) {
 		found := false
 		for index, data := range datas {
 			lport := strings.Split(data, " ")[0]
-			if port[0] == lport {
+			if port == lport {
 				log.Printf("[删除端口转发]	找到对应端口记录: %d.:%s", index, data)
 				found = true
 				//进行删除
@@ -367,13 +367,60 @@ func listPortForward(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-//修改端口转发 也是使用post方法
-func editPortForward(w http.ResponseWriter, r *http.Request) {
+//切换端口转发状态 0/1
+func changePortForward(w http.ResponseWriter, r *http.Request) {
 	if !auth(w, r) {
 		return
 	}
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	lport := r.PostFormValue("LocalPort")
+	enable := r.PostFormValue("Enable")
+	var dr MessageResponse
+	//找一下使用该端口的记录，删掉然后重新加一行即可
+	if dat, err := ioutil.ReadFile(brook_conf); err == nil {
+		datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+		found := false
+		for index, data := range datas {
+			items := strings.Split(data, " ")
+			port := items[0]
+			if lport == port {
+				log.Printf("[切换端口转发状态]找到对应端口记录: %d.:%s", index, data)
+				found = true
+				//进行删除
+				ret := executeCommand(`sed -i "/^` + lport + `/d" ` + brook_conf)
+				log.Println("[切换端口转发状态]	删除记录" + string(ret))
+				//删除后添加新记录
+				items[3] = enable
+				var writeLine = items[0] + " " + items[1] + " " + items[2] + " " + items[3] + " " + items[4] + " " + items[5]
+				ret = executeCommand(`echo "` + writeLine + `" >> ` + brook_conf)
+				log.Println("[切换端口转发状态]添加记录" + writeLine)
+				//最后重启一下
+				log.Println("[切换端口转发状态]重启使编辑生效")
+				executeCommand("/etc/init.d/brook-pf stop")
+				executeCommand("/etc/init.d/brook-pf start")
+				dr.Code = 200
+				dr.Msg = "成功编辑"
+				break
+			}
+		}
+		if !found {
+			log.Println("[切换端口转发状态]	配置文件中未找到对应端口")
+			dr.Code = 400
+			dr.Msg = "配置文件中未找到对应端口"
+		}
+	} else {
+		log.Println("[切换端口转发状态]打开配置文件失败" + err.Error())
+		dr.Code = 400
+		dr.Msg = "打开配置文件失败"
+	}
+	w.Header().Set("Content-Type", "application/json")
+	js, _ := json.Marshal(dr)
+	w.Write(js)
+}
+
+//关闭端口转发
+//修改端口转发 也是使用post方法  (漏了是否启用。。。)
+func editPortForward(w http.ResponseWriter, r *http.Request) {
+	if !auth(w, r) {
 		return
 	}
 	var req AddPortForwardRequest

@@ -60,6 +60,7 @@ func main() {
 	http.HandleFunc("/api/stop", stopBrook)
 	http.HandleFunc("/api/start", startBrook)
 	http.HandleFunc("/api/restart", restartBrook)
+	http.HandleFunc("/api/switchpf", changePortForward)
 	fmt.Println("Brook-pf server starting")
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
