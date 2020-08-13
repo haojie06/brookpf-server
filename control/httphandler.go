@@ -54,15 +54,15 @@ func executeCommand(cmdstr string) []byte {
 	return bytes
 }
 
-func commandHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	//获取命令
-	log.Println(r.Form["cmd"][0])
-	log.Println("path", r.URL.Path)
-	log.Println("scheme", r.URL.Scheme)
-	output := executeCommand(r.Form["cmd"][0])
-	fmt.Fprintf(w, "%s", output)
-}
+// func commandHandler(w http.ResponseWriter, r *http.Request) {
+// 	r.ParseForm()
+// 	//获取命令
+// 	log.Println(r.Form["cmd"][0])
+// 	log.Println("path", r.URL.Path)
+// 	log.Println("scheme", r.URL.Scheme)
+// 	output := executeCommand(r.Form["cmd"][0])
+// 	fmt.Fprintf(w, "%s", output)
+// }
 
 //获取服务器状态与上面的brook状态 /api/getstatus
 func getStatus(w http.ResponseWriter, r *http.Request) {
