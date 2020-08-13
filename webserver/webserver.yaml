@@ -15,11 +15,11 @@ servers:
   ip: jmos.better06.xyz
   port: "8008"
   username: admin
-  password: jmos
+  password: just
   desc: 修改后
 - id: 3
-  name: zzs
-  ip: zz.aoyou.me
+  name: 圣彼得堡
+  ip: ru.better06.xyz
   port: "8000"
   username: admin
   password: admin
