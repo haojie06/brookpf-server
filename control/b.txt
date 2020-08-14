@@ -1,0 +1,7 @@
+Chain OUTPUT (policy ACCEPT 330366 packets, 157231379 bytes)
+    pkts      bytes target     prot opt in     out     source               destination         
+       0        0            udp  --  *      *       0.0.0.0/0            0.0.0.0/0            udp spt:8086
+    7033  2802841            tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spt:8086
+       0        0 ACCEPT     udp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW udp dpt:35601
+      12      720 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:35601
+  586693 1881383119            tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spt:443

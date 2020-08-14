@@ -24,7 +24,7 @@ func executeCommand(cmdstr string) []byte {
 		log.Println("命令为空")
 		return nil
 	}
-	log.Println("[命令执行]将要执行:" + cmdstr)
+	// log.Println("[命令执行]将要执行:" + cmdstr)
 	cmd := exec.Command("/bin/bash", "-c", cmdstr)
 	//打开命令的标准输出管道
 	stdout, err := cmd.StdoutPipe()
@@ -63,6 +63,12 @@ func executeCommand(cmdstr string) []byte {
 // 	output := executeCommand(r.Form["cmd"][0])
 // 	fmt.Fprintf(w, "%s", output)
 // }
+//获得流量 用于测试
+func queryBandwidth(w http.ResponseWriter, r *http.Request) {
+
+	port := r.PostFormValue("port")
+	getBandwidth(port)
+}
 
 //获取服务器状态与上面的brook状态 /api/getstatus
 func getStatus(w http.ResponseWriter, r *http.Request) {
@@ -96,11 +102,15 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 	//先查看配置文件是否存在
 	if _, err := os.Stat(brook_conf); err == nil {
 		log.Println("Brook配置文件存在:")
+
 		if dat, err := ioutil.ReadFile(brook_conf); err == nil {
 			//去除一下首尾的字符
 			datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+			//按行来查询流量
 			for index, data := range datas {
-				log.Printf("%d.:%s\n", index, data)
+				bandwidth := getBandwidth(strings.Split(data, " ")[0])
+
+				datas[index] = datas[index] + "&" + bandwidth
 			}
 			Response.Records = datas
 		} else {
@@ -112,7 +122,6 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 		Response.Code = 201
 	}
 	js, err := json.Marshal(Response)
-	log.Println(string(js))
 	if err != nil {
 		log.Println("JSON转换失败" + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -363,6 +372,7 @@ func listPortForward(w http.ResponseWriter, r *http.Request) {
 	if dat, err := ioutil.ReadFile(brook_conf); err == nil {
 		//去除一下首尾的字符
 		datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+
 		dr.Code = 200
 		dataMap := make(map[string]interface{})
 		dataMap["records"] = datas
