@@ -249,15 +249,16 @@ func addPortForward(w http.ResponseWriter, r *http.Request) {
 						//判断是否成功添加（看上去不判断也没问题，上一步只要没执行出错就不会有问题。）
 						//修改iptables
 						log.Println("[添加端口转发]修改iptables")
-						log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport "+request["LocalPort"]+" -j ACCEPT")))
-						log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport "+request["LocalPort"]+" -j ACCEPT")))
-						if release == "centos" {
-							log.Printf("%s\n", string(executeCommand("service iptables save")))
-						} else if release == "ubuntu" {
-							log.Printf("%s\n", string(executeCommand("iptables-save > /etc/iptables.up.rules")))
-						} else {
-							log.Println("脚本不支持当前发行版", release)
-						}
+						changeIptables(true, request["LocalPort"])
+						// log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport "+request["LocalPort"]+" -j ACCEPT")))
+						// log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport "+request["LocalPort"]+" -j ACCEPT")))
+						// if release == "centos" {
+						// 	log.Printf("%s\n", string(executeCommand("service iptables save")))
+						// } else if release == "ubuntu" {
+						// 	log.Printf("%s\n", string(executeCommand("iptables-save > /etc/iptables.up.rules")))
+						// } else {
+						// 	log.Println("脚本不支持当前发行版", release)
+						// }
 						//重启brook
 						executeCommand("/etc/init.d/brook-pf stop")
 						executeCommand("/etc/init.d/brook-pf start")
@@ -317,6 +318,18 @@ func deletePortForward(w http.ResponseWriter, r *http.Request) {
 				//下面这个方法有可能出现bug，因为如果域名，ip中带有和端口一样的数字，则无法判断是否成功删除
 				//ret = executeCommand(`cat ` + brook_conf + `| grep ` + lport)
 				//重启一下 brook
+				//修改iptables
+				log.Println("[删除端口转发]修改iptables")
+				changeIptables(false, lport)
+				// log.Printf("%s\n", string(executeCommand("iptables -D INPUT -m state --state NEW -m tcp -p tcp --dport "+lport+" -j ACCEPT")))
+				// log.Printf("%s\n", string(executeCommand("iptables -D INPUT -m state --state NEW -m udp -p udp --dport "+lport+" -j ACCEPT")))
+				// if release == "centos" {
+				// 	log.Printf("%s\n", string(executeCommand("service iptables save")))
+				// } else if release == "ubuntu" {
+				// 	log.Printf("%s\n", string(executeCommand("iptables-save > /etc/iptables.up.rules")))
+				// } else {
+				// 	log.Println("脚本不支持当前发行版", release)
+				// }
 				executeCommand("/etc/init.d/brook-pf stop")
 				executeCommand("/etc/init.d/brook-pf start")
 				mr.Code = 200

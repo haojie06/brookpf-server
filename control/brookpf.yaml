@@ -1,4 +1,4 @@
-desc: ""
+desc: "服务器配置文件中的描述"
 password: admin
 port: 8000
 username: admin

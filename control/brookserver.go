@@ -25,7 +25,7 @@ func main() {
 	viper.SetConfigName(config_name)
 	viper.AddConfigPath(config_path)
 	//默认配置文件，如果指定路径没有配置文件则使用该配置来创建
-	viper.SetDefault("desc", "")
+	viper.SetDefault("info", "")
 	viper.SetDefault("password", "admin")
 	viper.SetDefault("username", "admin")
 	viper.SetDefault("port", 8000)
@@ -62,6 +62,7 @@ func main() {
 	http.HandleFunc("/api/switchpf", changePortForward)
 	fmt.Println("Brook面板受控端开始运行")
 	fmt.Println("配置文件定义 端口:", port, " 用户名:", username, "密码:", password)
+
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
