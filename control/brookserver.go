@@ -43,7 +43,6 @@ func main() {
 	username = viper.GetString("username")
 	password = viper.GetString("password")
 
-	fmt.Println("配置文件定义 端口:", port, " 用户名:", username, "密码:", password)
 	//检查发行版
 	fmt.Println("检查发行版")
 	ret := executeCommand(CheckReleaseScript)
@@ -61,7 +60,8 @@ func main() {
 	http.HandleFunc("/api/start", startBrook)
 	http.HandleFunc("/api/restart", restartBrook)
 	http.HandleFunc("/api/switchpf", changePortForward)
-	fmt.Println("Brook-pf server starting")
+	fmt.Println("Brook面板受控端开始运行")
+	fmt.Println("配置文件定义 端口:", port, " 用户名:", username, "密码:", password)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())
 	}
