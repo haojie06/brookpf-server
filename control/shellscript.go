@@ -24,29 +24,49 @@ echo ${release}`
 //修改系统iptables true为增加，false为删除 同时还要增加流量统计
 func changeIptables(add bool, port string) {
 	//修改iptables
-	log.Println("[iptables修改]修改iptables")
+	log.Println("[iptables修改]修改iptables,删除之前的流量记录以及增加转发放行")
 	if add {
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p tcp --dport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p udp --dport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p tcp --sport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p udp --sport "+port)))
-		log.Printf("[iptables修改]添加TCP:\n%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport "+port+" -j ACCEPT")))
-		log.Printf("[iptables修改]添加UDP:\n%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport "+port+" -j ACCEPT")))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I INPUT -p tcp --dport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I INPUT -p udp --dport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I OUTPUT -p tcp --sport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I OUTPUT -p udp --sport "+port)))
+		executeCommand("iptables -D INPUT -p tcp --dport " + port)
+		executeCommand("iptables -D INPUT -p udp --dport " + port)
+		executeCommand("iptables -D OUTPUT -p tcp --sport " + port)
+		executeCommand("iptables -D OUTPUT -p udp --sport " + port)
+		executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport " + port + " -j ACCEPT")
+		executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport " + port + " -j ACCEPT")
+		executeCommand("iptables -I INPUT -p tcp --dport " + port)
+		executeCommand("iptables -I INPUT -p udp --dport " + port)
+		executeCommand("iptables -I OUTPUT -p tcp --sport " + port)
+		executeCommand("iptables -I OUTPUT -p udp --sport " + port)
+
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p tcp --dport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p udp --dport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p tcp --sport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p udp --sport "+port)))
+
+		// log.Printf("[iptables修改]添加TCP:\n%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport "+port+" -j ACCEPT")))
+		// log.Printf("[iptables修改]添加UDP:\n%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport "+port+" -j ACCEPT")))
+
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I INPUT -p tcp --dport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I INPUT -p udp --dport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I OUTPUT -p tcp --sport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -I OUTPUT -p udp --sport "+port)))
 		// 							iptables -I INPUT -p tcp --dport $port
 		// iptables -I INPUT -p udp --dport $port
 		// iptables -I OUTPUT -p tcp --sport $port
 		// iptables -I OUTPUT -p udp --sport $port
 	} else {
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -m state --state NEW -m tcp -p tcp --dport "+port+" -j ACCEPT")))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -m state --state NEW -m udp -p udp --dport "+port+" -j ACCEPT")))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p tcp --dport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p udp --dport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p tcp --sport "+port)))
-		log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p udp --sport "+port)))
+		log.Println("[iptables修改]修改iptables,移除记录,删除之前的流量记录以及删除转发放行")
+		executeCommand("iptables -D INPUT -m state --state NEW -m tcp -p tcp --dport " + port + " -j ACCEPT")
+		executeCommand("iptables -D INPUT -m state --state NEW -m udp -p udp --dport " + port + " -j ACCEPT")
+		executeCommand("iptables -D INPUT -p tcp --dport " + port)
+		executeCommand("iptables -D INPUT -p udp --dport " + port)
+		executeCommand("iptables -D OUTPUT -p tcp --sport " + port)
+		executeCommand("iptables -D OUTPUT -p udp --sport " + port)
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -m state --state NEW -m tcp -p tcp --dport "+port+" -j ACCEPT")))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -m state --state NEW -m udp -p udp --dport "+port+" -j ACCEPT")))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p tcp --dport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D INPUT -p udp --dport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p tcp --sport "+port)))
+		// log.Printf("[iptables修改]%s\n", string(executeCommand("iptables -D OUTPUT -p udp --sport "+port)))
 	}
 	//保存对iptables的修改
 	if release == "centos" {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -47,7 +46,6 @@ func getBandwidth(port string) string {
 		}
 	}
 	//tcp出 tcp入 udp出 udp入
-	fmt.Println(bandWidth)
 	return bandWidth[0] + " " + bandWidth[1] + " " + bandWidth[2] + " " + bandWidth[3]
 }
 

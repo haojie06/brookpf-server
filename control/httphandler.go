@@ -50,7 +50,7 @@ func executeCommand(cmdstr string) []byte {
 		return nil
 	}
 	//执行到这一步，命令已经执行完毕，也获得了命令的输出
-	log.Printf("[命令执行]	结果: %s", bytes)
+	// log.Printf("[命令执行]	结果: %s", bytes)
 	return bytes
 }
 

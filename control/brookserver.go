@@ -62,7 +62,7 @@ func main() {
 	http.HandleFunc("/api/restart", restartBrook)
 	http.HandleFunc("/api/switchpf", changePortForward)
 
-	fmt.Println("Brook面板受控端开始运行")
+	fmt.Println("Brook面板受控端开始运行 V20200814")
 	fmt.Println("配置文件定义 端口:", port, " 用户名:", username, "密码:", password)
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
