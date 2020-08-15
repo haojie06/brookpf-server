@@ -247,6 +247,10 @@ func addPortForward(w http.ResponseWriter, r *http.Request) {
 							log.Println("[添加端口转发]打开配置文件出错", err.Error())
 
 						}
+						//去除请求中多余的空格
+						for index, r := range request {
+							request[index] = strings.TrimSpace(r)
+						}
 						if _, err := f.Write([]byte(request["LocalPort"] + " " + request["Host"] + " " + request["RemotePort"] + " " + request["Enable"] + " " + request["Name"] + " " + request["Description"] + "\n")); err != nil {
 							log.Fatal(err)
 						}
