@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
-
+//配置文件命名/路径以及用户名和密码
 var (
 	config_path = "./"
 	config_name = "brookpf"
@@ -48,9 +47,7 @@ func main() {
 	ret := executeCommand(CheckReleaseScript)
 	release = strings.TrimSpace((string(ret)))
 	fmt.Println("发行版为:" + release)
-	//http.HandleFunc("/", indexHandler)
-	//http.HandleFunc("/command", commandHandler)
-	http.HandleFunc("/api/band", queryBandwidth)
+	// http.HandleFunc("/api/band", queryBandwidth)
 	http.HandleFunc("/api/getstatus", getStatus)
 	http.HandleFunc("/api/stopbrook", stopBrook)
 	http.HandleFunc("/api/addpf", addPortForward)
@@ -61,9 +58,8 @@ func main() {
 	http.HandleFunc("/api/start", startBrook)
 	http.HandleFunc("/api/restart", restartBrook)
 	http.HandleFunc("/api/switchpf", changePortForward)
-
-	fmt.Println("Brook面板受控端开始运行 V20200814")
-	fmt.Println("配置文件定义 端口:", port, " 用户名:", username, "密码:", password)
+	fmt.Println("当前配置文件定义 端口:", port, " 用户名:", username, "密码:", password)
+	fmt.Println("Brook面板受控端开始运行 V20200817")
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("服务器启动错误:\n" + err.Error())

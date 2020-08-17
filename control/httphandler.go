@@ -19,9 +19,10 @@ var (
 	Crontab_file      = "/usr/bin/crontab"
 )
 
+//执行系统命令
 func executeCommand(cmdstr string) []byte {
 	if cmdstr == "" {
-		log.Println("命令为空")
+		log.Println("[命令执行]命令为空")
 		return nil
 	}
 	// log.Println("[命令执行]将要执行:" + cmdstr)
@@ -30,18 +31,18 @@ func executeCommand(cmdstr string) []byte {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		//打开输出管道失败
-		log.Printf("Error:can not obtain stdout pipe for command:%s\n", err)
+		log.Printf("[命令执行]无法打开命令标准输出管道:\n%s\n", err)
 		return nil
 	}
 	//执行命令 !注意，这样写的时候err为局部参数，只在if的作用域中有效
 	if err := cmd.Start(); err != nil {
-		log.Println("Error:The command is err,", err)
+		log.Println("[命令执行]命令错误\n", err)
 		return nil
 	}
 	//读取命令输出
 	bytes, err := ioutil.ReadAll(stdout)
 	if err != nil {
-		log.Println("ReadAll Stdout:", err.Error())
+		log.Println("[命令执行]读取命令输出失败:", err.Error())
 		return nil
 	}
 	//阻塞等待到命令执行完毕，获取输出
@@ -54,18 +55,8 @@ func executeCommand(cmdstr string) []byte {
 	return bytes
 }
 
-// func commandHandler(w http.ResponseWriter, r *http.Request) {
-// 	r.ParseForm()
-// 	//获取命令
-// 	log.Println(r.Form["cmd"][0])
-// 	log.Println("path", r.URL.Path)
-// 	log.Println("scheme", r.URL.Scheme)
-// 	output := executeCommand(r.Form["cmd"][0])
-// 	fmt.Fprintf(w, "%s", output)
-// }
 //获得流量 用于测试
 func queryBandwidth(w http.ResponseWriter, r *http.Request) {
-
 	port := r.PostFormValue("port")
 	getBandwidth(port)
 }
@@ -77,31 +68,31 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("查询服务器状态")
+	log.Println("[查询服务器状态]查询服务器状态")
 	//是否在线不用专门做，只要能返回信息就是在线
 	//查询brook是否安装
 	var Response StatusResponse
 	Response.Code = 200
 	if _, err := os.Stat(brook_file); err == nil {
-		log.Printf("Brook已经安装\n")
+		log.Printf("[查询服务器状态]Brook已经安装\n")
 		Response.Installed = true
 	} else {
-		log.Printf("Brook未安装\n")
+		log.Printf("[查询服务器状态]Brook未安装\n")
 		Response.Installed = false
 	}
 	//查询brook是否启动
 	pid := executeCommand(`ps -ef| grep "brook relays"| grep -v grep| grep -v ".sh"| grep -v "init.d"| grep -v "service"| awk '{print $2}'`)
 	if spid := string(pid); spid == "" {
-		log.Println("Brook未启动")
+		log.Println("[查询服务器状态]Brook未启动")
 		Response.Enable = false
 	} else {
-		log.Println("Brook已启动 PID:" + spid)
+		log.Println("[查询服务器状态]Brook已启动 PID:" + spid)
 		Response.Enable = true
 	}
 	//返回端口列表
 	//先查看配置文件是否存在
 	if _, err := os.Stat(brook_conf); err == nil {
-		log.Println("Brook配置文件存在:")
+		log.Println("[查询服务器状态]Brook配置文件存在:")
 
 		if dat, err := ioutil.ReadFile(brook_conf); err == nil {
 			//去除一下首尾的字符
@@ -114,19 +105,21 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 			}
 			Response.Records = datas
 		} else {
-			log.Println("打开配置文件失败" + err.Error())
+			log.Println("[查询服务器状态]打开配置文件失败" + err.Error())
 			Response.Code = 201
 		}
 	} else {
-		log.Println("Brook配置文件不存在")
+		log.Println("[查询服务器状态]Brook配置文件不存在")
 		Response.Code = 201
 	}
+	//结构体转为JSON
 	js, err := json.Marshal(Response)
 	if err != nil {
-		log.Println("JSON转换失败" + err.Error())
+		log.Println("[查询服务器状态]JSON转换失败" + err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	//返回JSON数据的方法，建议把方法独立出来
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 	return
@@ -180,127 +173,119 @@ func addPortForward(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var messageResponse MessageResponse
-	if r.Method != http.MethodPost {
-		messageResponse.Code = 405
-		messageResponse.Msg = "错误的请求方法"
-		//w.WriteHeader(405)
-		log.Println("[添加端口转发]	错误的请求方法")
-		//return
-	} else {
-		/*
-			如果要用form-data而不是json来发送，那么就不要先解析
-			err := r.ParseForm()
-			if err != nil {
-				w.WriteHeader(400)
-				return
-			}
-		*/
-		request := make(map[string]string)
-		request["LocalPort"] = r.PostFormValue("LocalPort")
-		request["RemotePort"] = r.PostFormValue("RemotePort")
-		request["Host"] = r.PostFormValue("Host")
-		request["Enable"] = r.PostFormValue("Enable")
-		request["Name"] = r.PostFormValue("Name")
-		request["Description"] = r.PostFormValue("Description")
-		//处理一下非法输入
-		log.Println("[添加端口转发]	请求记录", request)
-		for key, value := range request {
-			fmt.Println("KEY:" + key + "---" + "VALUE:" + value)
-		}
-		//首先检查端口是否重复
-
-		completed := true
-		for index, data := range request {
-			if data == "" {
-				//request post参数不完整
-				completed = false
-				messageResponse.Code = 400
-				messageResponse.Msg = "request参数不完整 缺少" + index
-				log.Printf("[添加中转端口]	request参数不完整，缺少%s\n", index)
-			}
-		}
-		if completed {
-			var ifDuplicated bool = false
-			if _, err := os.Stat(brook_conf); err == nil {
-				log.Println("[添加端口转发]Brook配置文件存在:")
-				if dat, err := ioutil.ReadFile(brook_conf); err == nil {
-					//去除一下首尾的字符
-					datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
-					for index, data := range datas {
-						log.Printf("%d.:%s\n", index, data)
-						lp := strings.Split(data, " ")[0]
-						if request["LocalPort"] == lp {
-							log.Println("[添加端口转发]端口冲突，无法添加转发:" + lp)
-							ifDuplicated = true
-						}
-					}
-					if ifDuplicated {
-						//端口冲突 无法添加
-						messageResponse.Code = 400
-						messageResponse.Msg = "端口冲突无法添加转发"
-
-					} else {
-						log.Println("可以添加转发端口" + request["LocalPort"])
-						//写入文件
-						f, err := os.OpenFile(brook_conf, os.O_APPEND|os.O_WRONLY, 0600)
-						if err != nil {
-							log.Println("[添加端口转发]打开配置文件出错", err.Error())
-
-						}
-						//去除请求中多余的空格
-						for index, r := range request {
-							request[index] = strings.TrimSpace(r)
-						}
-						if _, err := f.Write([]byte(request["LocalPort"] + " " + request["Host"] + " " + request["RemotePort"] + " " + request["Enable"] + " " + request["Name"] + " " + request["Description"] + "\n")); err != nil {
-							log.Fatal(err)
-						}
-						if err := f.Close(); err != nil {
-							log.Fatal(err)
-						} else {
-							log.Println("[添加端口转发]写入配置文件")
-						}
-						//判断是否成功添加（看上去不判断也没问题，上一步只要没执行出错就不会有问题。）
-						//修改iptables
-						log.Println("[添加端口转发]修改iptables")
-						changeIptables(true, request["LocalPort"])
-						// log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport "+request["LocalPort"]+" -j ACCEPT")))
-						// log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport "+request["LocalPort"]+" -j ACCEPT")))
-						// if release == "centos" {
-						// 	log.Printf("%s\n", string(executeCommand("service iptables save")))
-						// } else if release == "ubuntu" {
-						// 	log.Printf("%s\n", string(executeCommand("iptables-save > /etc/iptables.up.rules")))
-						// } else {
-						// 	log.Println("脚本不支持当前发行版", release)
-						// }
-						//重启brook
-						executeCommand("/etc/init.d/brook-pf stop")
-						executeCommand("/etc/init.d/brook-pf start")
-						log.Println("成功添加端口转发")
-						messageResponse.Code = 200
-						messageResponse.Msg = "成功添加端口转发"
-					}
-				} else {
-					log.Println("[添加端口转发]打开配置文件失败" + err.Error())
-					messageResponse.Code = 400
-					messageResponse.Msg = "打开brook配置文件失败"
-				}
-			} else {
-				log.Println("[添加端口转发]rook配置文件不存在")
-				messageResponse.Code = 400
-				messageResponse.Msg = "[添加端口转发]brook配置文件不存在"
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		js, err := json.Marshal(messageResponse)
+	/*
+		如果要用form-data而不是json来发送，那么就不要先解析
+		err := r.ParseForm()
 		if err != nil {
-			log.Println("JSON转换失败" + err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			w.WriteHeader(400)
 			return
 		}
-		w.Write(js)
+	*/
+	request := make(map[string]string)
+	request["LocalPort"] = r.PostFormValue("LocalPort")
+	request["RemotePort"] = r.PostFormValue("RemotePort")
+	request["Host"] = r.PostFormValue("Host")
+	request["Enable"] = r.PostFormValue("Enable")
+	request["Name"] = r.PostFormValue("Name")
+	request["Description"] = r.PostFormValue("Description")
+	//处理一下非法输入
+	log.Println("[添加端口转发]	请求记录", request)
+	for key, value := range request {
+		fmt.Println("KEY:" + key + " " + "VALUE:" + value)
+	}
+	//首先检查端口是否重复
+
+	completed := true
+	for index, data := range request {
+		if data == "" {
+			//request post参数不完整
+			completed = false
+			messageResponse.Code = 400
+			messageResponse.Msg = "request参数不完整 缺少" + index
+			log.Printf("[添加中转端口]	request参数不完整，缺少%s\n", index)
+		}
+	}
+	if completed {
+		var ifDuplicated bool = false
+		if _, err := os.Stat(brook_conf); err == nil {
+			log.Println("[添加端口转发]Brook配置文件存在:")
+			if dat, err := ioutil.ReadFile(brook_conf); err == nil {
+				//去除一下首尾的字符
+				datas := strings.Split(strings.TrimSpace(string(dat)), "\n")
+				for index, data := range datas {
+					log.Printf("%d.:%s\n", index, data)
+					lp := strings.Split(data, " ")[0]
+					if request["LocalPort"] == lp {
+						log.Println("[添加端口转发]端口冲突，无法添加转发:" + lp)
+						ifDuplicated = true
+					}
+				}
+				if ifDuplicated {
+					//端口冲突 无法添加
+					messageResponse.Code = 400
+					messageResponse.Msg = "端口冲突无法添加转发"
+
+				} else {
+					log.Println("可以添加转发端口" + request["LocalPort"])
+					//写入文件
+					f, err := os.OpenFile(brook_conf, os.O_APPEND|os.O_WRONLY, 0600)
+					if err != nil {
+						log.Println("[添加端口转发]打开配置文件出错", err.Error())
+
+					}
+					//去除请求中多余的空格
+					for index, r := range request {
+						request[index] = strings.TrimSpace(r)
+					}
+					if _, err := f.Write([]byte(request["LocalPort"] + " " + request["Host"] + " " + request["RemotePort"] + " " + request["Enable"] + " " + request["Name"] + " " + request["Description"] + "\n")); err != nil {
+						log.Fatal(err)
+					}
+					if err := f.Close(); err != nil {
+						log.Fatal(err)
+					} else {
+						log.Println("[添加端口转发]写入配置文件")
+					}
+					//判断是否成功添加（看上去不判断也没问题，上一步只要没执行出错就不会有问题。）
+					//修改iptables
+					log.Println("[添加端口转发]修改iptables")
+					changeIptables(true, request["LocalPort"])
+					// log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m tcp -p tcp --dport "+request["LocalPort"]+" -j ACCEPT")))
+					// log.Printf("%s\n", string(executeCommand("iptables -I INPUT -m state --state NEW -m udp -p udp --dport "+request["LocalPort"]+" -j ACCEPT")))
+					// if release == "centos" {
+					// 	log.Printf("%s\n", string(executeCommand("service iptables save")))
+					// } else if release == "ubuntu" {
+					// 	log.Printf("%s\n", string(executeCommand("iptables-save > /etc/iptables.up.rules")))
+					// } else {
+					// 	log.Println("脚本不支持当前发行版", release)
+					// }
+					//重启brook
+					executeCommand("/etc/init.d/brook-pf stop")
+					executeCommand("/etc/init.d/brook-pf start")
+					log.Println("成功添加端口转发")
+					messageResponse.Code = 200
+					messageResponse.Msg = "成功添加端口转发"
+				}
+			} else {
+				log.Println("[添加端口转发]打开配置文件失败" + err.Error())
+				messageResponse.Code = 400
+				messageResponse.Msg = "打开brook配置文件失败"
+			}
+		} else {
+			log.Println("[添加端口转发]rook配置文件不存在")
+			messageResponse.Code = 400
+			messageResponse.Msg = "[添加端口转发]brook配置文件不存在"
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	js, err := json.Marshal(messageResponse)
+	if err != nil {
+		log.Println("JSON转换失败" + err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Write(js)
+	return
 
 }
 
