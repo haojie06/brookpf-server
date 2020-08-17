@@ -59,9 +59,12 @@ func main() {
 	port := config.Port
 	username = config.UserName
 	password = config.Password
+	info := viper.GetString("info")
+
 	//serverList := config.Servers
 	//serverlist := viper.GetStringMap("servers")
-	log.Printf("Brook webserver started\nusername:%s\npassword:%s\nport:%s\n", username, password, port)
+	log.Printf("Brookweb后端程序开始运行\nusername:%s\npassword:%s\nport:%s\n", username, password, port)
+	fmt.Println(`服务器信息` + info)
 	//log.Println(serverList)
 	//绑定监听方法
 	http.HandleFunc("/web/login", login)

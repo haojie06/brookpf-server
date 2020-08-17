@@ -34,6 +34,7 @@ func getServers(w http.ResponseWriter, r *http.Request) {
 	}
 	dataMap := make(map[string]interface{})
 	dataMap["servers"] = config.Servers
+
 	mr := DataResponse{Code: 200, Msg: "查询成功", Data: dataMap}
 	js, _ := json.Marshal(mr)
 	w.Header().Set("Content-Type", "application/json")
@@ -50,8 +51,8 @@ func addServer(w http.ResponseWriter, r *http.Request) {
 	var newServer Server
 	newServer.Name = r.PostFormValue("Name")
 	newServer.IP = r.PostFormValue("IP")
-	newServer.UserName = r.PostFormValue("Username")
-	newServer.Password = r.PostFormValue("Password")
+	newServer.UserName = r.PostFormValue("ServerUser")
+	newServer.Password = r.PostFormValue("ServerPassword")
 	newServer.Port = r.PostFormValue("Port")
 	newServer.Desc = r.PostFormValue("Desc")
 	var config Config

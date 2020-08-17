@@ -13,6 +13,7 @@ type Config struct {
 	UserName string   `username`
 	Password string   `password`
 	Port     string   `port`
+
 	Servers  []Server `servers`
 }
 type DataResponse struct {
